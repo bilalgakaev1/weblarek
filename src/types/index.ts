@@ -1,3 +1,4 @@
+
 export type ApiPostMethods = 'POST' | 'PUT' | 'DELETE';
 
 export interface IApi {
@@ -22,3 +23,4 @@ export interface IBuyer {
   phone: string;
   address: string;
 } 
+

@@ -89,3 +89,17 @@ export class EventEmitter implements IEvents {
     }
 }
 
+import { TypedEvents } from "../../types/events";
+import { AppEvents } from "../../types/events";
+
+
+export const events = new EventEmitter() as EventEmitter & TypedEvents;
+
+export const typedEvents = {
+    on<K extends keyof AppEvents>(event: K, callback: (data: AppEvents[K]) => void) {
+      return events.on(event, callback as any);
+    },
+    emit<K extends keyof AppEvents>(event: K, data: AppEvents[K]) {
+      return events.emit(event, data as any);
+    }
+  };

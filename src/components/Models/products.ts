@@ -1,10 +1,13 @@
 import { IProduct } from "../../types";
+import { events } from '../../main';
+
 export class Products {
     private products: IProduct[] = [];
     private selectedProdust: IProduct | null = null;
 
     saveProducts(products: IProduct[]): void {
         this.products = products;
+        events.emit('catalog:updated', this.products);
     }
 
     getProducts(): IProduct[] {
