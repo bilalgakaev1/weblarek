@@ -246,6 +246,33 @@ interface IBuyer {
   me.phone = 'номер телефона';
   ```
 
+## Взаимодействие компонентов
+
+Связь между слоями организована через событийную шину EventEmitter.
+Компоненты View вызывают события (emit), а Presenter (main.ts) подписывается на них (on) и обновляет модели и интерфейс.
+
+#### Communication (взаимодействие с сервером)
+
+Класс Communication реализует работу с API через базовый класс Api.
+```
+export class Communication {
+  private api: Api;
+
+  constructor(baseUrl: string) {
+    this.api = new Api(baseUrl);
+  }
+
+  public async fetchProducts(): Promise<ProductListResponse> {
+    return await this.api.get<ProductListResponse>('/product/');
+  }
+
+  public async sendOrder(order: OrderRequest): Promise<OrderResponse> {
+    return await this.api.post<OrderResponse>('/order/', order);
+  }
+}
+
+```
+
  ## View-компоненты проекта
 
 Каждый компонент отвечает за отдельную часть пользовательского интерфейса и наследуется от Component.
