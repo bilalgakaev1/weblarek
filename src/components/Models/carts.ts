@@ -1,20 +1,20 @@
 import { IProduct } from "../../types";
-import { events } from '../../main';
+import { events } from "../base/Events";
 
 export class Carts {
     private items: IProduct[] = []; 
 
-    getItems(): IProduct[] {
+    getItem(): IProduct[] {
         return [...this.items];
     }
 
-    addItems(product: IProduct): void {
+    addItem(product: IProduct): void {
         this.items.push(product);
         events.emit('cart:changed', this.items);
     }
 
-    removeItems(product: IProduct): void {
-        this.items = this.items.filter(p => p !== product)
+    removeItem(product: IProduct): void {
+        this.items = this.items.filter(p => p.id !== product.id);
         events.emit('cart:changed', this.items);
     }
 

@@ -18,3 +18,7 @@ export const categoryMap = {
     'дополнительное': 'card__category_additional',
     'другое': 'card__category_other',
   };
+
+  export function getCategoryClass(category: string): string{
+    return (categoryMap as Record<string, string>) [category] ?? 'card__category_other'
+  }

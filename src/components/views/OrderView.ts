@@ -1,67 +1,88 @@
+import { Component } from "../base/Component";
+import { events } from "../base/Events";
+import { TPayment } from "../../types";
 
-import { events } from '../../main';
-import { TPayment } from '../../types';
 
-export class OrderView {
-  private form: HTMLFormElement;
+export class OrderView extends Component<{}> {
+  private root: HTMLElement;
   private paymentButtons: NodeListOf<HTMLButtonElement>;
   private addressInput: HTMLInputElement;
   private nextBtn: HTMLButtonElement;
-  private errorsEl: HTMLElement | null;
+  private errorEl: HTMLElement | null;
+  private selectedPayment: TPayment = null;
 
-  constructor() {
-    const tpl = document.getElementById('order') as HTMLTemplateElement;
-    if (!tpl) throw new Error('#order template not found');
-    this.form = (tpl.content.firstElementChild as HTMLFormElement).cloneNode(true) as HTMLFormElement;
+  constructor(tpl?: HTMLTemplateElement) {
+    const template = tpl ?? (document.getElementById('order') as HTMLTemplateElement | null);
+    if (!template) throw new Error('#order template not found');
+    const root = (template.content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
+    super(root);
+    this.root = root;
 
-    this.paymentButtons = this.form.querySelectorAll('.order__buttons .button') as NodeListOf<HTMLButtonElement>;
-    this.addressInput = this.form.querySelector('input[name="address"]') as HTMLInputElement;
-    this.nextBtn = this.form.querySelector('.order__button') as HTMLButtonElement;
-    this.errorsEl = this.form.querySelector('.form__errors');
 
-    
-    this.paymentButtons.forEach(btn =>
-      btn.addEventListener('click', (e) => {
-        const b = e.currentTarget as HTMLButtonElement;
+    this.paymentButtons = this.root.querySelectorAll('.order__buttons .button') as NodeListOf<HTMLButtonElement>;
+    this.addressInput = this.root.querySelector('input[name="address"]') as HTMLInputElement;
+    this.nextBtn = this.root.querySelector('.order__button') as HTMLButtonElement;
+    this.errorEl = this.root.querySelector('.form__errors');
+
+
+    this.paymentButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
         
-        this.paymentButtons.forEach(x => x.classList.remove('button_alt-active'));
-        b.classList.add('button_alt-active');
-        
-        const payment: TPayment = b.name as TPayment;
+        this.paymentButtons.forEach(b => b.classList.remove('button_alt-active'));
+        btn.classList.add('button_alt-active');
+
+
+        const name = btn.getAttribute('name') ?? btn.dataset.payment ?? btn.textContent ?? '';
+
+        const payment: TPayment = (name === 'card' ? 'card' : (name === 'cash' ? 'cash' : null));
+        this.selectedPayment = payment;
         events.emit('order:paymentChanged', { payment });
-      })
-    );
+        this.validate();
+      });
+    });
 
     this.addressInput.addEventListener('input', () => {
-        events.emit('order:addressChanged', { address: this.addressInput.value });
-    });
-
-    this.form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      
-      const paymentBtn = this.form.querySelector('.button_alt-active') as HTMLButtonElement | null;
-      const payment: TPayment = paymentBtn ? (paymentBtn.name as TPayment) : null;
       const address = this.addressInput.value.trim();
-      events.emit('order:step1:next', { paymentMethod: payment, address });
+      events.emit('order:addressChanged', { address });
+      this.validate();
     });
 
-    
+
+    this.nextBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const address = this.addressInput.value.trim();
+      if (!this.selectedPayment || address.length === 0) {
+        this.showError('Выберите способ оплаты и введите адрес доставки.');
+        return;
+      }
+
+      events.emit('order:step1', { paymentMethod: this.selectedPayment, address });
+    });
+
     this.setNextEnabled(false);
   }
 
-  render() { return this.form; }
-
-  
   setNextEnabled(enabled: boolean) {
     this.nextBtn.disabled = !enabled;
   }
 
-  
-  showError(message: string) {
-    if (this.errorsEl) this.errorsEl.textContent = message;
+  validate(): boolean {
+    const addressOk = this.addressInput.value.trim().length > 0;
+    const paymentOk = this.selectedPayment != null;
+    const ok = addressOk && paymentOk;
+    this.setNextEnabled(ok);
+    return ok;
   }
 
-  clearError() {
-    if (this.errorsEl) this.errorsEl.textContent = '';
+  showError(text: string) {
+    if (this.errorEl) {
+      this.errorEl.textContent = text;
+    } else {
+      console.warn('Order error:', text);
+    }
+  }
+
+  render(): HTMLElement {
+    return this.root;
   }
 }

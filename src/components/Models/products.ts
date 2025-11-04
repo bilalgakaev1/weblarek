@@ -1,5 +1,5 @@
 import { IProduct } from "../../types";
-import { events } from '../../main';
+import { events } from "../base/Events";
 
 export class Products {
     private products: IProduct[] = [];
@@ -18,7 +18,7 @@ export class Products {
         return this.products.find(product => product.id === id);
     }
 
-    setSelectedProdusct(product: IProduct): void {
+    setSelectedProduct(product: IProduct): void {
         this.selectedProdust = product;
     }
 

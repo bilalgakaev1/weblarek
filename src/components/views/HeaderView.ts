@@ -1,31 +1,46 @@
+import { Component } from "../base/Component";
+import { ensureElement } from "../../utils/utils";
+import { events } from "../base/Events";
 
-import { events } from '../../main';
+export class HeaderView extends Component<HTMLElement> {
+  private rootEl: HTMLElement;
+  private basketBtn: HTMLButtonElement | null;
+  private counterEl: HTMLElement | null;
 
-export class HeaderView {
-  private root: HTMLElement;
-  private basketBtn: HTMLButtonElement;
-  private counterEl: HTMLElement;
+  constructor(rootSelector: string | HTMLElement = '.header') {
+    const root = ensureElement<HTMLElement>(rootSelector as any);
+    super(root);
+    this.rootEl = root;
 
-  
-  constructor(rootSelector = '.header', private options?: { onOpenCart?: () => void }) {
-    const root = document.querySelector(rootSelector) as HTMLElement;
-    if (!root) throw new Error('Header root not found');
-    this.root = root;
-    this.basketBtn = this.root.querySelector('.header__basket') as HTMLButtonElement;
-    this.counterEl = this.root.querySelector('.header__basket-counter') as HTMLElement;
+    this.basketBtn = this.rootEl.querySelector('.header__basket') as HTMLButtonElement | null;
+    this.counterEl = this.rootEl.querySelector('.header__basket-counter') as HTMLElement | null;
 
-    this.basketBtn.addEventListener('click', () => {
-      if (this.options?.onOpenCart) this.options.onOpenCart();
-      events.emit('cart:open', {});
+    
+    this.basketBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      events.emit('cart:open', undefined);
+    });
+
+    events.on('cart:changed', (payload: any) => {
+      const count =
+        (Array.isArray(payload) && payload.length) ||
+        (payload && (payload.items?.length ?? payload.length ?? 0)) ||
+        0;
+      this.setCounter(Number(count));
     });
   }
 
-  
-  setCounter(n: number) {
-    this.counterEl.textContent = String(n);
-    
-    this.counterEl.setAttribute('aria-live', 'polite');
+  setCounter(count: number) {
+    if (!this.counterEl) return;
+    this.counterEl.textContent = String(count);
+    if (count > 0) {
+      this.counterEl.style.display = '';
+    } else {
+      this.counterEl.style.display = '';
+    }
   }
 
-  render() { return this.root; }
+  render(): HTMLElement {
+    return this.rootEl;
+  }
 }

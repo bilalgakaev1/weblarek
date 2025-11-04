@@ -1,23 +1,35 @@
+import { Component } from "../base/Component";
+import { events } from "../base/Events";
 
-import { events } from '../../main';
-
-export class SuccessView {
+export class SuccessView extends Component<{}> {
   private root: HTMLElement;
+  private descEl: HTMLElement | null;
   private closeBtn: HTMLButtonElement | null;
 
-  constructor() {
-    const tpl = document.getElementById('success') as HTMLTemplateElement;
-    if (!tpl) throw new Error('#success template not found');
-    this.root = (tpl.content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
+  constructor(tpl?: HTMLTemplateElement) {
+    const template = tpl ?? (document.getElementById('success') as HTMLTemplateElement | null);
+    if (!template) throw new Error('#success template not found');
+    const root = (template.content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
+    super(root);
+    this.root = root;
+
+    this.descEl = this.root.querySelector('.order-success__description');
     this.closeBtn = this.root.querySelector('.order-success__close') as HTMLButtonElement | null;
 
-    this.closeBtn?.addEventListener('click', () => events.emit('order:success:close', {}));
+    this.closeBtn?.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      events.emit('order:success:close', undefined);
+    });
   }
 
-  render() { return this.root; }
-
+  
   update(total: number) {
-    const desc = this.root.querySelector('.order-success__description') as HTMLElement | null;
-    if (desc) desc.textContent = `Списано ${total} синапсов`;
+    if (this.descEl) {
+      this.descEl.textContent = `Списано ${total} синапсов`;
+    }
+  }
+
+  render(): HTMLElement {
+    return this.root;
   }
 }

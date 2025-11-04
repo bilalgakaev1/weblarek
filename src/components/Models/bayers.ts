@@ -1,8 +1,8 @@
 import { IBuyer, TPayment } from "../../types";
-import { events } from '../../main';
+import { events } from "../base/Events";
 
 
-export class Bayer implements IBuyer {
+export class Buyer implements IBuyer {
     address = '';
     phone = '';
     email = '';
@@ -61,7 +61,7 @@ export class Bayer implements IBuyer {
       events.emit('order:validated', { isValid: this.validate() });
     }
   
-    getData(): object {
+    getData(): IBuyer {
       return {
         address: this.address,
         phone: this.phone,
