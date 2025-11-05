@@ -44,8 +44,7 @@ export class Buyer implements IBuyer {
       this.payment = null;
       this.email = '';
       this.phone = '';
-      events.emit('order:cleared', {});
-      this.emitValidated(); // теперь isValid = false
+      this.emitValidated(); 
     }
   
     validate(): boolean {

@@ -7,7 +7,7 @@ export class Products {
 
     saveProducts(products: IProduct[]): void {
         this.products = products;
-        events.emit('catalog:updated', this.products);
+        events.emit('catalog:selected', this.products);
     }
 
     getProducts(): IProduct[] {

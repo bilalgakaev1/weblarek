@@ -59,6 +59,7 @@ export class CardPreviewView extends Component<IProduct> {
         } else {
           events.emit('product:add', { productId: this.currentProductId });
         }
+        events.emit('modal:close-request')
       };
     }
 

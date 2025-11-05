@@ -56,7 +56,7 @@ export class OrderView extends Component<{}> {
         return;
       }
 
-      events.emit('order:step1', { paymentMethod: this.selectedPayment, address });
+      events.emit('order:delivery', { paymentMethod: this.selectedPayment, address });
     });
 
     this.setNextEnabled(false);

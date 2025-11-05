@@ -23,7 +23,7 @@ export class BasketView extends Component<{}> {
     
     this.checkoutBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      events.emit('cart:checkout', undefined);
+      events.emit('cart:checkout');
     });
   }
 

@@ -40,7 +40,7 @@ export class ContactsView extends Component<{}> {
         return;
       }
       
-      events.emit('checkout:step2', { email, phone });
+      events.emit('checkout:contacts', { email, phone });
     });
 
     this.setPayEnabled(false);

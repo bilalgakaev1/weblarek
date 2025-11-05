@@ -21,21 +21,23 @@ export class ModalView extends Component<{}> implements IModal {
     this.container.addEventListener('click', (e) => {
       if (e.target === this.container) this.close();
     });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') this.close();
-    });
   }
 
   open(content: HTMLElement) {
     this.contentContainer.replaceChildren(content);
     this.container.classList.add('modal_active');
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.close();
+    });
   }
 
   close() {
     this.container.classList.remove('modal_active');
     this.contentContainer.innerHTML = '';
     events.emit('modal:close', {});
+    document.removeEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.close();
+    });
   }
 
   render(): HTMLElement {
