@@ -20,14 +20,6 @@ export class HeaderView extends Component<HTMLElement> {
       e.preventDefault();
       events.emit('cart:open', undefined);
     });
-
-    events.on('cart:changed', (payload: any) => {
-      const count =
-        (Array.isArray(payload) && payload.length) ||
-        (payload && (payload.items?.length ?? payload.length ?? 0)) ||
-        0;
-      this.setCounter(Number(count));
-    });
   }
 
   setCounter(count: number) {

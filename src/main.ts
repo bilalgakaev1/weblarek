@@ -1,5 +1,6 @@
 import './scss/styles.scss';
 
+import { IProduct, ContactsPayload, ProductIdPayload, OrderStep1Payload, IBuyer, TPayment, OrderRequest } from './types';
 import { events } from './components/base/Events';
 import { cloneTemplate, ensureElement } from './utils/utils';
 import { API_URL } from './utils/constants';
@@ -8,11 +9,11 @@ import { Products } from './components/Models/products';
 import { Carts } from './components/Models/carts';
 import { Buyer } from './components/Models/bayers';
 import { Communication } from './components/Models/Communication';
-import { OrderRequest } from './types';
 
 import { Gallery } from './components/views/Gallery';
 import { HeaderView } from './components/views/HeaderView';
 import { ModalView } from './components/views/ModalView';
+import { CardBasket } from './components/views/CardBasket';
 import { CardCatalogView } from './components/views/CardCatalogView';
 import { CardPreviewView } from './components/views/CardPreviewView';
 import { BasketView } from './components/views/BasketView';
@@ -35,22 +36,24 @@ const basketTpl = ensureElement<HTMLTemplateElement>('#basket');
 const basketView = new BasketView(basketTpl);
 
 const orderTpl = ensureElement<HTMLTemplateElement>('#order');
-const orderView = new OrderView(orderTpl);
+let orderView = new OrderView(orderTpl);
 
 const contactsTpl = ensureElement<HTMLTemplateElement>('#contacts');
-const contactsView = new ContactsView(contactsTpl);
+let contactsView = new ContactsView(contactsTpl);
 
 const successTpl = ensureElement<HTMLTemplateElement>('#success');
 const successView = new SuccessView(successTpl);
 
-function getBuyerSafe() {
-  const bd = buyerModel.getData() as any; 
-  return {
-    payment: bd?.payment ?? 'card',
-    address: bd?.address ?? '',
-    email: bd?.email ?? '',
-    phone: bd?.phone ?? ''
-  };
+type BuyerChangePayload = { key: keyof IBuyer; value: IBuyer[keyof IBuyer] };
+
+events.on<BuyerChangePayload>('buyer:change', (payload) => {
+  if (!payload) return;
+  const { key, value } = payload;
+  buyerModel.change(key, value);
+});
+
+function getBuyerSafe(): IBuyer {
+  return buyerModel.getData();
 }
 
 async function loadProducts() {
@@ -75,21 +78,15 @@ events.on('catalog:updated', () => {
   gallery.items = nodes;
 });
 
-/*
-  product:open — view emits when user clicks catalog card.
-  Правильный поток: product:open -> модель.setSelectedProduct(...) -> модель эмитит product:selected -> презентер открывает preview.
-  Поэтому здесь только обновляем модель.
-*/
-events.on('product:open', (payload: any) => {
+events.on<ProductIdPayload>('product:open', (payload) => {
   const productId = payload?.productId;
   if (!productId) return;
   const product = productsModel.getProductById(productId);
   if (!product) return;
-  // записываем выбор в модель — модель должна эмитить 'product:selected'
   productsModel.setSelectedProduct(product);
 });
 
-events.on('product:selected', (product: any) => {
+events.on<IProduct>('product:selected', (product) => {
   if (!product) return;
   const tplClone = cloneTemplate('#card-preview');
   const preview = new CardPreviewView(tplClone);
@@ -98,10 +95,7 @@ events.on('product:selected', (product: any) => {
   modal.open(el);
 });
 
-// ---- Add / Remove product handlers (models keep single source of truth) ----
-// Эти обработчики меняют только модель (без закрытия модалки).
-// View должен эмитить событие закрытия модалки сам (modal:close-request) после emit 'product:add' / 'product:remove'.
-events.on('product:add', (payload: any) => {
+events.on<ProductIdPayload>('product:add', (payload) => {
   const productId = payload?.productId;
   if (!productId) return;
   const product = productsModel.getProductById(productId);
@@ -109,7 +103,7 @@ events.on('product:add', (payload: any) => {
   cartModel.addItem(product);
 });
 
-events.on('product:remove', (payload: any) => {
+events.on<ProductIdPayload>('product:remove', (payload) => {
   const productId = payload?.productId;
   if (!productId) return;
   const product = cartModel.getItem().find((p) => p.id === productId);
@@ -126,22 +120,23 @@ events.on('cart:open', () => {
   modal.open(basketView.render());
 });
 
-events.on('cart:item:remove', (payload: any) => {
-  const productId = payload?.productId;
-  if (!productId) return;
-  const product = cartModel.getItem().find((p) => p.id === productId);
-  if (!product) return;
-  cartModel.removeItem(product);
-});
-
 events.on('cart:changed', () => {
   header.setCounter(cartModel.getCount());
 
-  const modalNode = ensureElement('#modal-container');
-  const modalContent = modalNode.querySelector('.modal__content') as HTMLElement | null;
-  if (modalNode.classList.contains('modal_active') && modalContent?.querySelector('.basket')) {
-    basketView.setItems(cartModel.getItem());
-    modal.open(basketView.render());
+  const items: IProduct[] = cartModel.getItem();
+
+  const nodes: HTMLElement[] = items.map((p, i) => {
+    const row = new CardBasket();
+    row.update(p, i);
+    return row.render();
+  });
+
+  const total = items.reduce((s, it) => s + (it.price ?? 0), 0);
+
+  if (typeof (basketView as unknown as { setList?: Function }).setList === 'function') {
+    (basketView as unknown as any).setList(nodes, total);
+  } else {
+    basketView.setItems(items);
   }
 });
 
@@ -149,56 +144,78 @@ events.on('cart:checkout', () => {
   modal.open(orderView.render());
 });
 
-events.on('order:paymentChanged', (payload: any) => {
-  const payment = payload?.payment;
-  buyerModel.setPayment(payment);
+events.on<{ payment: TPayment }>('order:paymentChanged', (payload) => {
+  if (!payload) return;
+  buyerModel.change('payment', payload.payment);
 });
-events.on('order:addressChanged', (payload: any) => {
-  const address = payload?.address;
-  buyerModel.setAddress(address);
+events.on<{ address: string }>('order:addressChanged', (payload) => {
+  if (!payload) return;
+  buyerModel.change('address', payload.address);
 });
 
-const handleOrderStep1 = (payload: any) => {
+events.on<OrderStep1Payload>('order:delivery', (payload) => {
   const paymentMethod = payload?.paymentMethod;
   const address = payload?.address;
   if (!paymentMethod || !address) return;
-
-  buyerModel.setPayment(paymentMethod);
-  buyerModel.setAddress(address);
-
   modal.open(contactsView.render());
-};
-events.on('order:delivery', handleOrderStep1);
-
-events.on('contacts:changed', (payload: any) => {
-  const email = payload?.email;
-  const phone = payload?.phone;
-  if (typeof email === 'string') buyerModel.setEmail(email);
-  if (typeof phone === 'string') buyerModel.setPhone(phone);
 });
 
-const handleCheckoutFinal = async (payload: any) => {
-  const email = payload?.email;
-  const phone = payload?.phone;
-  if (!email || !phone) return;
+events.on<ContactsPayload>('contacts:changed', (payload) => {
+  if (!payload) return;
+  if (typeof payload.email === 'string') buyerModel.change('email', payload.email);
+  if (typeof payload.phone === 'string') buyerModel.change('phone', payload.phone);
+});
 
-  buyerModel.setEmail(email);
-  buyerModel.setPhone(phone);
+events.on<{ isValid?: boolean; errors?: Record<string, string> } | Record<string, string>>('form:validate', (payload) => {
+  let errors: Record<string, string> = {};
+  if (!payload) {
+    errors = {};
+  } else if ('errors' in (payload as any) || 'isValid' in (payload as any)) {
+    const p = payload as { isValid?: boolean; errors?: Record<string, string> };
+    errors = p.errors ?? {};
+  } else {
+    errors = payload as Record<string, string>;
+  }
 
+  const orderFields = ['address', 'payment'];
+  const orderErrors: Record<string, string> = {};
+  for (const k of orderFields) {
+    if (errors[k]) orderErrors[k] = errors[k];
+  }
+  const orderValid = Object.keys(orderErrors).length === 0;
+
+  const contactFields = ['email', 'phone'];
+  const contactsErrors: Record<string, string> = {};
+  for (const k of contactFields) {
+    if (errors[k]) contactsErrors[k] = errors[k];
+  }
+  const contactsValid = Object.keys(contactsErrors).length === 0;
+
+  orderView.showErrors(orderErrors);
+  orderView.setSubmitEnabled(orderValid);
+
+  contactsView.showErrors(contactsErrors);
+  contactsView.setSubmitEnabled(contactsValid);
+});
+
+const handleCheckoutFinal = async () => {
   const buyerData = getBuyerSafe();
+  const items = cartModel.getItem();
+  const total = cartModel.getTotalPrice() ?? 0;
+
   const order: OrderRequest = {
-    items: cartModel.getItem().map(p => p.id),
-    payment: String(buyerData.payment),
+    items: items.map((p: IProduct) => p.id),
+    payment: String(buyerData.payment ?? ''),
     address: buyerData.address,
     email: buyerData.email,
     phone: buyerData.phone,
-    total: cartModel.getTotalPrice() ?? 0
+    total
   };
 
   try {
     const res = await api.sendOrder(order);
     console.log('Заказ успешно отправлен:', res);
-    const total = cartModel.getTotalPrice() ?? 0;
+
     cartModel.clear();
     buyerModel.clear();
 
@@ -209,11 +226,13 @@ const handleCheckoutFinal = async (payload: any) => {
     events.emit('order:send:error', { message: 'Ошибка отправки заказа. Попробуйте позже.' });
   }
 };
-events.on('checkout:contacts', handleCheckoutFinal);
+events.on<ContactsPayload>('checkout:contacts', handleCheckoutFinal);
 
 events.on('order:success:close', () => {
   modal.close();
   header.setCounter(cartModel.getCount());
+  contactsView = new ContactsView(contactsTpl);
+  orderView = new OrderView(orderTpl);
 });
 
 console.log('App initialized');

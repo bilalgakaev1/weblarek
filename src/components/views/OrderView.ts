@@ -1,88 +1,48 @@
-import { Component } from "../base/Component";
+import { FormView } from "./FormView";
 import { events } from "../base/Events";
 import { TPayment } from "../../types";
 
-
-export class OrderView extends Component<{}> {
-  private root: HTMLElement;
-  private paymentButtons: NodeListOf<HTMLButtonElement>;
-  private addressInput: HTMLInputElement;
-  private nextBtn: HTMLButtonElement;
-  private errorEl: HTMLElement | null;
-  private selectedPayment: TPayment = null;
+export class OrderView extends FormView {
+  rootEl: HTMLElement;
+  addressInput: HTMLInputElement;
+  nextBtn: HTMLButtonElement;
+  paymentButtons: NodeListOf<HTMLButtonElement>;
 
   constructor(tpl?: HTMLTemplateElement) {
     const template = tpl ?? (document.getElementById('order') as HTMLTemplateElement | null);
     if (!template) throw new Error('#order template not found');
     const root = (template.content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
+
     super(root);
-    this.root = root;
+    this.rootEl = root;
 
+    this.addressInput = this.rootEl.querySelector('input[name="address"]') as HTMLInputElement;
+    this.nextBtn = this.rootEl.querySelector('.order__button') as HTMLButtonElement;
+    this.paymentButtons = this.rootEl.querySelectorAll('.order__buttons .button') as NodeListOf<HTMLButtonElement>;
 
-    this.paymentButtons = this.root.querySelectorAll('.order__buttons .button') as NodeListOf<HTMLButtonElement>;
-    this.addressInput = this.root.querySelector('input[name="address"]') as HTMLInputElement;
-    this.nextBtn = this.root.querySelector('.order__button') as HTMLButtonElement;
-    this.errorEl = this.root.querySelector('.form__errors');
-
+    this.addressInput.addEventListener('input', () => {
+      const val = this.addressInput.value.trim();
+      events.emit('buyer:change', { key: 'address', value: val });
+    });
 
     this.paymentButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        
         this.paymentButtons.forEach(b => b.classList.remove('button_alt-active'));
         btn.classList.add('button_alt-active');
 
-
-        const name = btn.getAttribute('name') ?? btn.dataset.payment ?? btn.textContent ?? '';
-
-        const payment: TPayment = (name === 'card' ? 'card' : (name === 'cash' ? 'cash' : null));
-        this.selectedPayment = payment;
-        events.emit('order:paymentChanged', { payment });
-        this.validate();
+        const name = (btn.getAttribute('name') ?? btn.dataset.payment ?? btn.textContent ?? '').trim();
+        const payment: TPayment = name === 'card' ? 'card' : (name === 'cash' ? 'cash' : null);
+        events.emit('buyer:change', { key: 'payment', value: payment });
       });
     });
-
-    this.addressInput.addEventListener('input', () => {
-      const address = this.addressInput.value.trim();
-      events.emit('order:addressChanged', { address });
-      this.validate();
-    });
-
 
     this.nextBtn.addEventListener('click', (ev) => {
       ev.preventDefault();
       const address = this.addressInput.value.trim();
-      if (!this.selectedPayment || address.length === 0) {
-        this.showError('Выберите способ оплаты и введите адрес доставки.');
-        return;
-      }
-
-      events.emit('order:delivery', { paymentMethod: this.selectedPayment, address });
+      const active = Array.from(this.paymentButtons).find(b => b.classList.contains('button_alt-active'));
+      const name = active?.getAttribute('name') ?? active?.dataset.payment ?? active?.textContent ?? '';
+      const paymentMethod: TPayment = name === 'card' ? 'card' : (name === 'cash' ? 'cash' : null);
+      events.emit('order:delivery', { paymentMethod, address });
     });
-
-    this.setNextEnabled(false);
-  }
-
-  setNextEnabled(enabled: boolean) {
-    this.nextBtn.disabled = !enabled;
-  }
-
-  validate(): boolean {
-    const addressOk = this.addressInput.value.trim().length > 0;
-    const paymentOk = this.selectedPayment != null;
-    const ok = addressOk && paymentOk;
-    this.setNextEnabled(ok);
-    return ok;
-  }
-
-  showError(text: string) {
-    if (this.errorEl) {
-      this.errorEl.textContent = text;
-    } else {
-      console.warn('Order error:', text);
-    }
-  }
-
-  render(): HTMLElement {
-    return this.root;
   }
 }

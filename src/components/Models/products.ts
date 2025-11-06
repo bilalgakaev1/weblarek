@@ -7,7 +7,7 @@ export class Products {
 
     saveProducts(products: IProduct[]): void {
         this.products = products;
-        events.emit('catalog:selected', this.products);
+        events.emit('catalog:updated', this.products);
     }
 
     getProducts(): IProduct[] {
@@ -20,6 +20,7 @@ export class Products {
 
     setSelectedProduct(product: IProduct): void {
         this.selectedProdust = product;
+        events.emit('product:selected', this.selectedProdust)
     }
 
     getSelectedProduct(): IProduct | null {

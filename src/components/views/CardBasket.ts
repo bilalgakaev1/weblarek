@@ -24,7 +24,7 @@ export class CardBasket extends Component<{}> {
     this.deleteBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = this.root.dataset.id;
-      if (id) events.emit('cart:item:remove', { productId: id });
+      if (id) events.emit('product:remove', { productId: id });
     });
   }
 

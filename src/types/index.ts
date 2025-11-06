@@ -8,6 +8,22 @@ export interface IApi {
 
 export type TPayment = "card" | "cash" | null;
 
+export type ContactsPayload = {
+  email: string;
+  phone: string;
+}
+
+export type OrderStep1Payload = {
+  paymentMethod: TPayment;
+  address: string;
+}
+
+export type payment = { payment: TPayment }
+
+export type address = { address: string }
+
+export type ProductIdPayload = { productId: string };
+
 export interface IProduct {
   id: string;
   description: string;

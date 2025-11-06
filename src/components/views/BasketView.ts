@@ -20,10 +20,9 @@ export class BasketView extends Component<{}> {
     this.priceEl = this.root.querySelector('.basket__price') as HTMLElement;
     this.checkoutBtn = this.root.querySelector('.basket__button') as HTMLButtonElement;
 
-    
     this.checkoutBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      events.emit('cart:checkout');
+      events.emit('cart:checkout', undefined);
     });
   }
 
@@ -50,6 +49,22 @@ export class BasketView extends Component<{}> {
     this.checkoutBtn.disabled = items.length === 0;
   }
 
+  setList(nodes: HTMLElement[], total: number) {
+    this.listEl.replaceChildren();
+    if (!nodes || nodes.length === 0) {
+      const empty = document.createElement('p');
+      empty.textContent = 'Корзина пуста';
+      this.listEl.appendChild(empty);
+      if (this.priceEl) this.priceEl.textContent = '0 синапсов';
+      this.checkoutBtn.disabled = true;
+      return;
+    }
+
+    nodes.forEach(node => this.listEl.appendChild(node));
+
+    if (this.priceEl) this.priceEl.textContent = `${total} синапсов`;
+    this.checkoutBtn.disabled = nodes.length === 0;
+  }
 
   render(): HTMLElement {
     return this.root;

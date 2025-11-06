@@ -1,71 +1,51 @@
-import { IBuyer, TPayment } from "../../types";
-import { events } from "../base/Events";
+import { IBuyer, TPayment } from '../../types';
+import { events } from '../base/Events';
 
+export class Buyer {
+  private data: IBuyer;
 
-export class Buyer implements IBuyer {
-    address = '';
-    phone = '';
-    email = '';
-    payment: TPayment = null;
-  
-    constructor(payment?: TPayment, address = '', phone = '', email = '') {
-      if (payment) this.payment = payment;
-      this.address = address;
-      this.phone = phone;
-      this.email = email;
-    }
-  
-    setAddress(address: string) {
-      this.address = address;
-      events.emit('order:changed', { field: 'address', value: address });
-      this.emitValidated();
-    }
-  
-    setPhone(phone: string) {
-      this.phone = phone;
-      events.emit('order:changed', { field: 'phone', value: phone });
-      this.emitValidated();
-    }
-  
-    setEmail(email: string) {
-      this.email = email;
-      events.emit('order:changed', { field: 'email', value: email });
-      this.emitValidated();
-    }
-  
-    setPayment(payment: TPayment) {
-      this.payment = payment;
-      events.emit('order:changed', { field: 'payment', value: payment });
-      this.emitValidated();
-    }
-  
-    clear(): void {
-      this.address = '';
-      this.payment = null;
-      this.email = '';
-      this.phone = '';
-      this.emitValidated(); 
-    }
-  
-    validate(): boolean {
-      const isValid =
-        this.address.length > 0 &&
-        this.email.includes('@') &&
-        this.phone.length > 0 &&
-        this.payment != null;
-      return isValid;
-    }
-  
-    private emitValidated() {
-      events.emit('order:validated', { isValid: this.validate() });
-    }
-  
-    getData(): IBuyer {
-      return {
-        address: this.address,
-        phone: this.phone,
-        email: this.email,
-        payment: this.payment
-      };
-    }
+  constructor() {
+    this.data = {
+      payment: 'card' as TPayment,
+      address: '',
+      email: '',
+      phone: ''
+    };
   }
+
+  getData(): IBuyer {
+    return this.data;
+  }
+
+  clear() {
+    this.data = { payment: 'card', address: '', email: '', phone: '' };
+    events.emit('form:validate', {});
+  }
+
+  change<K extends keyof IBuyer>(key: K, value: IBuyer[K]) {
+    this.data[key] = value;
+    this.validate();
+  }
+
+  private validate() {
+    const errors: Record<string, string> = {};
+
+    if (!this.data.address?.trim()) {
+      errors.address = 'Введите адрес доставки';
+    }
+
+    if (!this.data.email?.includes('@')) {
+      errors.email = 'Некорректный email';
+    }
+
+    if (!this.data.phone?.trim()) {
+      errors.phone = 'Введите номер телефона';
+    }
+
+    if (!this.data.payment) {
+      errors.payment = 'Выберите способ оплаты';
+    }
+
+    events.emit('form:validate', errors);
+  }
+}
