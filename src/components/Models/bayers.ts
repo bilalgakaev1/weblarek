@@ -6,7 +6,7 @@ export class Buyer {
 
   constructor() {
     this.data = {
-      payment: 'card' as TPayment,
+      payment: '' as TPayment,
       address: '',
       email: '',
       phone: ''
@@ -18,7 +18,7 @@ export class Buyer {
   }
 
   clear() {
-    this.data = { payment: 'card', address: '', email: '', phone: '' };
+    this.data = { payment: null, address: '', email: '', phone: '' };
     events.emit('form:validate', {});
   }
 

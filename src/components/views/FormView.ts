@@ -36,6 +36,25 @@ export abstract class FormView extends Component<{}> {
     if (this.submitBtn) this.submitBtn.disabled = !enabled;
   }
 
+  update(data: Record<string, any> | null | undefined) {
+    const values = data ?? {};
+    this.inputs.forEach((input) => {
+      const key = input.name;
+      input.value = (values[key] ?? '') as string;
+    });
+
+    if (this.paymentButtons) {
+      const current = String(values['payment'] ?? '').trim();
+      this.paymentButtons.forEach(btn => {
+        const name = (btn.getAttribute('name') ?? btn.dataset.payment ?? btn.textContent ?? '').trim();
+        btn.classList.toggle('button_alt-active', name === current);
+      });
+    }
+
+    this.showErrors({});
+    this.setSubmitEnabled(false);
+  }
+
   render(): HTMLElement {
     return this.root;
   }

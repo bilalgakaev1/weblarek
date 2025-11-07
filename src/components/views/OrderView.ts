@@ -38,11 +38,7 @@ export class OrderView extends FormView {
 
     this.nextBtn.addEventListener('click', (ev) => {
       ev.preventDefault();
-      const address = this.addressInput.value.trim();
-      const active = Array.from(this.paymentButtons).find(b => b.classList.contains('button_alt-active'));
-      const name = active?.getAttribute('name') ?? active?.dataset.payment ?? active?.textContent ?? '';
-      const paymentMethod: TPayment = name === 'card' ? 'card' : (name === 'cash' ? 'cash' : null);
-      events.emit('order:delivery', { paymentMethod, address });
+      events.emit('order:delivery');
     });
   }
 }

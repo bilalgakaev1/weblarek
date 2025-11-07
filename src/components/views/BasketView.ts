@@ -1,7 +1,5 @@
 import { Component } from "../base/Component";
 import { events } from "../base/Events";
-import { IProduct } from "../../types";
-import { CardBasket } from "./CardBasket";
 
 export class BasketView extends Component<{}> {
   private root: HTMLElement;
@@ -26,30 +24,7 @@ export class BasketView extends Component<{}> {
     });
   }
 
-  setItems(items: IProduct[]) {
-    this.listEl.replaceChildren();
-
-    if (!items || items.length === 0) {
-      const empty = document.createElement('p');
-      empty.textContent = 'Корзина пуста';
-      this.listEl.appendChild(empty);
-      if (this.priceEl) this.priceEl.textContent = '0 синапсов';
-      this.checkoutBtn.disabled = true;
-      return;
-    }
-
-    items.forEach((p, i) => {
-      const row = new CardBasket();
-      row.update(p, i);
-      this.listEl.appendChild(row.render());
-    });
-
-    const total = items.reduce((s, it) => s + (it.price ?? 0), 0);
-    if (this.priceEl) this.priceEl.textContent = `${total} синапсов`;
-    this.checkoutBtn.disabled = items.length === 0;
-  }
-
-  setList(nodes: HTMLElement[], total: number) {
+  setList(nodes: HTMLElement[], total: number | null) {
     this.listEl.replaceChildren();
     if (!nodes || nodes.length === 0) {
       const empty = document.createElement('p');

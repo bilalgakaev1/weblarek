@@ -13,11 +13,6 @@ export type ContactsPayload = {
   phone: string;
 }
 
-export type OrderStep1Payload = {
-  paymentMethod: TPayment;
-  address: string;
-}
-
 export type payment = { payment: TPayment }
 
 export type address = { address: string }
