@@ -116,8 +116,6 @@ events.on('modal:close-request', () => {
 });
 
 events.on('cart:open', () => {
-  const buyerData = getBuyerSafe();
-  orderView.update(buyerData);
   modal.open(basketView.render());
 });
 
@@ -137,6 +135,8 @@ events.on('cart:changed', () => {
 });
 
 events.on('cart:checkout', () => {
+  const buyerData = getBuyerSafe();
+  orderView.update(buyerData);
   modal.open(orderView.render());
 });
 
